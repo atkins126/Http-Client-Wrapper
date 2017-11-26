@@ -67,10 +67,10 @@ begin
 end;
 
 initialization
-  THttpClientWrapper.RegisterClient(
-    function: IHttpClientWrapper
-    begin
-      Result := TNetHttpClientWrapper.Create
-    end);
+//  THttpClientWrapper.RegisterClient(
+//    function: IHttpClientWrapper
+//    begin
+//      Result := TNetHttpClientWrapper.Create
+//    end);
 
 end.
