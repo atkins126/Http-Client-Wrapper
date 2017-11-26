@@ -7,17 +7,11 @@ uses
 
 type
   TIndyHttpClientWrapper = class(TInterfacedObject, IHttpClientWrapper)
-  private
-    FOnResponse: TOnHTTPClientResponse;
-    function getOnResponse: TOnHTTPClientResponse;
-    procedure SetOnResponse(const Value: TOnHTTPClientResponse);
   public
     function Get(url: String): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
 
     function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;
-
-    property OnResponse: TOnHTTPClientResponse read getOnResponse write SetOnResponse;
   end;
 
 implementation
@@ -72,11 +66,6 @@ begin
   http.Free;
 end;
 
-function TIndyHttpClientWrapper.getOnResponse: TOnHTTPClientResponse;
-begin
-  Result := FOnResponse;
-end;
-
 function TIndyHttpClientWrapper.Post(url: String;
   ContentType: String; postData: TStream): IHTTPClientResponse;
 var
@@ -100,17 +89,11 @@ begin
   http.Free;
 end;
 
-procedure TIndyHttpClientWrapper.SetOnResponse(
-  const Value: TOnHTTPClientResponse);
-begin
-  FOnResponse := Value;
-end;
-
 initialization
-  THttpClientWrapper.RegisterClient(
-    function: IHttpClientWrapper
-    begin
-      Result := TIndyHttpClientWrapper.Create
-    end);
+//  THttpClientWrapper.RegisterClient(
+//    function: IHttpClientWrapper
+//    begin
+//      Result := TIndyHttpClientWrapper.Create
+//    end);
 
 end.

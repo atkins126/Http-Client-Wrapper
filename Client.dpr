@@ -4,7 +4,8 @@ uses
   Vcl.Forms,
   ClientTestFrm in 'ClientTestFrm.pas' {ClientTestDlg},
   HttpClientWrapperLib in 'source\HttpClientWrapperLib.pas',
-  IndyHttpClientWrapper in 'source\IndyHttpClientWrapper.pas';
+  IndyHttpClientWrapper in 'source\IndyHttpClientWrapper.pas',
+  NetHttpClientWrapper in 'source\NetHttpClientWrapper.pas';
 
 {$R *.res}
 

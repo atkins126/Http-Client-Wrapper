@@ -21,15 +21,10 @@ type
   TOnHTTPClientResponse = reference to procedure(response: IHTTPClientResponse);
 
   IHttpClientWrapper = interface
-    function getOnResponse: TOnHTTPClientResponse;
-    procedure SetOnResponse(const value: TOnHTTPClientResponse);
-
     function Get(url: String): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
 
     function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;
-
-    property OnResponse: TOnHTTPClientResponse read getOnResponse write SetOnResponse;
   end;
 
   THTTPClientResponse = class(TInterfacedObject, IHTTPClientResponse)
