@@ -66,11 +66,5 @@ begin
   http.Free;
 end;
 
-initialization
-//  THttpClientWrapper.RegisterClient(
-//    function: IHttpClientWrapper
-//    begin
-//      Result := TNetHttpClientWrapper.Create
-//    end);
 
 end.

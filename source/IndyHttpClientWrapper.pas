@@ -89,11 +89,4 @@ begin
   http.Free;
 end;
 
-initialization
-//  THttpClientWrapper.RegisterClient(
-//    function: IHttpClientWrapper
-//    begin
-//      Result := TIndyHttpClientWrapper.Create
-//    end);
-
 end.

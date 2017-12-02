@@ -106,11 +106,5 @@ begin
   http.Free;
 end;
 
-initialization
-  THttpClientWrapper.RegisterClient(
-    function: IHttpClientWrapper
-    begin
-      Result := TAlcinoeHttpClientWrapper.Create
-    end);
 
 end.

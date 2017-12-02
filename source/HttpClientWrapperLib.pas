@@ -46,16 +46,12 @@ type
     property ContentStream: TStream read getContentStream;
   end;
 
-  TCreateHttpClient = reference to function:IHttpClientWrapper;
-
   THttpClientWrapper = class(TObject)
   private
-    class var FCreateFunction: TCreateHttpClient;
-  public
-    class procedure RegisterClient(clientCreator: TCreateHttpClient);
-  private
+    FClient: IHttpClientWrapper;
     FOnResponse: TOnHTTPClientResponse;
   public
+    constructor Create(client: IHttpClientWrapper);
     function Get(url: String): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
 
@@ -112,25 +108,20 @@ end;
 { THttpClientWrapper }
 
 function THttpClientWrapper.Get(url: String): IHTTPClientResponse;
-var
-  client: IHttpClientWrapper;
 begin
-  Assert(Assigned(FCreateFunction), 'Es wurde kein Wrapper zugewiesen');
-  client := FCreateFunction;
-  Result := client.Get(url);
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Get(url);
 end;
 
 procedure THttpClientWrapper.AsyncGet(url: String);
 begin
-  Assert(Assigned(FCreateFunction), 'Es wurde kein Wrapper zugewiesen');
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
   TThread.CreateAnonymousThread(
     procedure
     var
-      client: IHttpClientWrapper;
       resp: IHTTPClientResponse;
     begin
-      client := FCreateFunction;
-      resp := client.Get(url);
+      resp := FClient.Get(url);
       TThread.Synchronize(TThread.CurrentThread,
       procedure
       begin
@@ -143,15 +134,13 @@ end;
 procedure THttpClientWrapper.AsyncPost(url, ContentType: String;
   postData: TStream);
 begin
-  Assert(Assigned(FCreateFunction), 'Es wurde kein Wrapper zugewiesen');
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
   TThread.CreateAnonymousThread(
     procedure
     var
-      client: IHttpClientWrapper;
       resp: IHTTPClientResponse;
     begin
-      client := FCreateFunction;
-      resp := client.Post(url, ContentType, postData);
+      resp := FClient.Post(url, ContentType, postData);
       TThread.Synchronize(TThread.CurrentThread,
       procedure
       begin
@@ -161,33 +150,23 @@ begin
     end).Start;
 end;
 
+constructor THttpClientWrapper.Create(client: IHttpClientWrapper);
+begin
+  FClient := client;
+end;
+
 function THttpClientWrapper.Get(url: String;
   out response: String): IHTTPClientResponse;
-var
-  client: IHttpClientWrapper;
 begin
-  Assert(Assigned(FCreateFunction), 'Es wurde kein Wrapper zugewiesen');
-  client := FCreateFunction;
-  Result := client.Get(url, response);
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Get(url, response);
 end;
 
 function THttpClientWrapper.Post(url: String;
   ContentType: String; postData: TStream): IHTTPClientResponse;
-var
-  client: IHttpClientWrapper;
 begin
-  Assert(Assigned(FCreateFunction), 'Es wurde kein Wrapper zugewiesen');
-  client := FCreateFunction;
-  Result := client.Post(url, ContentType, postData);
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Post(url, ContentType, postData);
 end;
-
-class procedure THttpClientWrapper.RegisterClient(clientCreator: TCreateHttpClient);
-begin
-  FCreateFunction := clientCreator;
-end;
-
-initialization
-finalization
-  THttpClientWrapper.FCreateFunction := nil;
 
 end.
