@@ -90,6 +90,7 @@ begin
     procedure(resp: IHTTPClientResponse)
     begin
       Memo1.Lines.Text := resp.Content;
+      client.Free;
     end;
   client.AsyncGet('http://httpbin.org/delay/5');
 end;
@@ -105,6 +106,7 @@ begin
     begin
       Memo1.Lines.Text := resp.Content;
       strStream.Free;
+      client.Free;
     end;
 
   strStream := TStringStream.Create('{"Name": "Dennis"}');

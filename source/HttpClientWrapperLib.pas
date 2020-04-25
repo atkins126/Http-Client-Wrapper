@@ -172,7 +172,6 @@ begin
       procedure
       begin
         if Assigned(OnResponse) then OnResponse(resp);
-        Self.Free;
       end);
     end).Start;
 end;
@@ -191,7 +190,6 @@ begin
       procedure
       begin
         if Assigned(OnResponse) then OnResponse(resp);
-        Self.Free;
       end);
     end).Start;
 end;
@@ -209,7 +207,6 @@ begin
       procedure
       begin
         if Assigned(OnResponse) then OnResponse(resp);
-        Self.Free;
       end);
     end).Start;
 end;
@@ -228,7 +225,6 @@ begin
       procedure
       begin
         if Assigned(OnResponse) then OnResponse(resp);
-        Self.Free;
       end);
     end).Start;
 end;
@@ -247,7 +243,6 @@ begin
       procedure
       begin
         if Assigned(OnResponse) then OnResponse(resp);
-        Self.Free;
       end);
     end).Start;
 end;
