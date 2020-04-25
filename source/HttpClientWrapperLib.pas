@@ -30,6 +30,7 @@ type
 
 
   IHttpClientWrapper = interface
+    procedure SetBasicAuth(username, password: String);
     function Get(url: String): IHTTPClientResponse;overload;
     function Get(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
@@ -41,6 +42,11 @@ type
     function Put(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;
 
     function Delete(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;
+  end;
+
+  IHttpClientFileDownload = interface
+  ['{F83EEB18-7ECA-4D5F-855B-64DF633AD59B}']
+    function DownloadFile(url: string; filename: String): Boolean;
   end;
 
   THTTPClientResponse = class(TInterfacedObject, IHTTPClientResponse)
@@ -67,10 +73,13 @@ type
     FOnResponse: TOnHTTPClientResponse;
   public
     constructor Create(client: IHttpClientWrapper);
+    procedure SetBasicAuth(username, password: String);
 
     function Get(url: String): IHTTPClientResponse;overload;
     function Get(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
+
+    function DownloadFile(url: string; filename: String): Boolean;
 
     function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;overload;
     function Post(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
@@ -80,7 +89,8 @@ type
 
     function Delete(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;
 
-    procedure AsyncGet(url: String);
+    procedure AsyncGet(url: String);overload;
+    procedure AsyncGet(url: String; header: TArray<THttpHeader>);overload;
     procedure AsyncPost(url: String; ContentType: String; postData: TStream);overload;
     procedure AsyncPost(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>);overload;
     procedure AsyncPost(url: String; ContentType: String; postData: TStrings);overload;
@@ -186,6 +196,24 @@ begin
     end).Start;
 end;
 
+procedure THttpClientWrapper.AsyncGet(url: String; header: TArray<THttpHeader>);
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  TThread.CreateAnonymousThread(
+    procedure
+    var
+      resp: IHTTPClientResponse;
+    begin
+      resp := FClient.Get(url, header);
+      TThread.Synchronize(TThread.CurrentThread,
+      procedure
+      begin
+        if Assigned(OnResponse) then OnResponse(resp);
+        Self.Free;
+      end);
+    end).Start;
+end;
+
 procedure THttpClientWrapper.AsyncPost(url, ContentType: String;
   postData: TStrings);
 begin
@@ -235,6 +263,20 @@ begin
   Result := FClient.Delete(url, header);
 end;
 
+function THttpClientWrapper.DownloadFile(url, filename: String): Boolean;
+var
+  downloadClient: IHttpClientFileDownload;
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  if Supports(FClient, IHttpClientFileDownload, downloadClient) then
+  begin
+    Result := downloadClient.DownloadFile(url, filename);
+  end else
+  begin
+    raise ENotSupportedException.Create('Der Client unterstützt die Funktion "DownloadFile" nicht.');
+  end;
+end;
+
 function THttpClientWrapper.Get(url: String;
   out response: String): IHTTPClientResponse;
 begin
@@ -254,6 +296,11 @@ function THttpClientWrapper.Put(url, ContentType: String; postData: TStream;
 begin
   Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
   Result := FClient.Put(url, ContentType, postData, header);
+end;
+
+procedure THttpClientWrapper.SetBasicAuth(username, password: String);
+begin
+  FClient.SetBasicAuth(username, password);
 end;
 
 function THttpClientWrapper.Post(url, ContentType: String; postData: TStream;

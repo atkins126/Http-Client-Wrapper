@@ -3,7 +3,7 @@ unit IndyHttpClientWrapper;
 interface
 
 uses
-  HttpClientWrapperLib, IdHTTP, System.Classes, IdSSLOpenSSL;
+  HttpClientWrapperLib, IdHTTP, System.Classes, IdSSLOpenSSL, System.SysUtils;
 
 type
   TIndyClientResponse = class(TInterfacedObject, IHTTPClientResponse)
@@ -25,13 +25,19 @@ type
     property ContentStream: TStream read getContentStream;
   end;
 
-  TIndyHttpClientWrapper = class(TInterfacedObject, IHttpClientWrapper)
+  TIndyHttpClientWrapper = class(TInterfacedObject, IHttpClientWrapper, IHttpClientFileDownload)
   private
+    FBasicAuthUsername: String;
+    FBasicAuthPassword: String;
     procedure InitSSL(sslIOHandler: TIdSSLIOHandlerSocketOpenSSL);
+    procedure InitHttp(http: TIdHTTP);
   public
+    procedure SetBasicAuth(username, password: String);
     function Get(url: String): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
     function Get(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
+
+    function DownloadFile(url: string; filename: String): Boolean;
 
     function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;overload;
     function Post(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
@@ -57,10 +63,12 @@ var
   ioHandler: TIdSSLIOHandlerSocketOpenSSL;
 begin
   http := TIdHTTP.Create;
+
   Result := TIndyClientResponse.Create;
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
+  InitHttp(http);
   respStream := TMemoryStream.Create;
   try
     http.Get(url, respStream);
@@ -89,6 +97,7 @@ begin
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
+  InitHttp(http);
   Result := TIndyClientResponse.Create;
   try
     response := http.Get(url);
@@ -116,11 +125,13 @@ begin
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
+  InitHttp(http);
   http.Request.UserAgent := ' Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36';
   try
     http.Request.ContentType := ContentType;
 
     resp := http.Post(url, postData);
+    TIndyClientResponse(Result).FStatusCode := http.ResponseCode;
     TIndyClientResponse(Result).FContent := resp;
   except
     on E: EIdHTTPProtocolException do
@@ -144,7 +155,7 @@ begin
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
-
+  InitHttp(http);
   try
     http.Request.UserAgent := ' Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36';
     for h in header do
@@ -167,6 +178,31 @@ begin
   end;
 end;
 
+function TIndyHttpClientWrapper.DownloadFile(url: string; filename: String): Boolean;
+var
+  fs: TFileStream;
+  http: TIdHTTP;
+  ioHandler: TIdSSLIOHandlerSocketOpenSSL;
+begin
+  Result := false;
+  http := TIdHTTP.Create;
+
+  ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
+  http.IOHandler := ioHandler;
+  InitSSL(ioHandler);
+  InitHttp(http);
+
+  fs := TFileStream.Create(filename, fmCreate);
+  try
+    http.Get(url, fs);
+    Result := true;
+  finally
+    fs.Free;
+    http.Free;
+    ioHandler.Free;
+  end;
+end;
+
 function TIndyHttpClientWrapper.Get(url: String;
   header: TArray<THttpHeader>): IHTTPClientResponse;
 var
@@ -180,6 +216,7 @@ begin
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
+  InitHttp(http);
   Result := TIndyClientResponse.Create;
   respStream := TMemoryStream.Create;
   try
@@ -204,6 +241,13 @@ begin
   respStream.Free;
 end;
 
+procedure TIndyHttpClientWrapper.InitHttp(http: TIdHTTP);
+begin
+  http.Request.Username := FBasicAuthUsername;
+  http.Request.Password := FBasicAuthPassword;
+  http.Request.BasicAuthentication := not FBasicAuthUsername.Trim.IsEmpty;
+end;
+
 procedure TIndyHttpClientWrapper.InitSSL(
   sslIOHandler: TIdSSLIOHandlerSocketOpenSSL);
 begin
@@ -224,6 +268,7 @@ begin
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
+  InitHttp(http);
 
   http.Request.UserAgent := ' Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36';
   response := TMemoryStream.Create;
@@ -265,6 +310,7 @@ begin
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
+  InitHttp(http);
   http.Request.UserAgent := ' Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36';
   try
     http.Request.ContentType := ContentType;
@@ -286,6 +332,12 @@ begin
   ioHandler.Free;
 end;
 
+procedure TIndyHttpClientWrapper.SetBasicAuth(username, password: String);
+begin
+  FBasicAuthUsername := username;
+  FBasicAuthPassword := password;
+end;
+
 function TIndyHttpClientWrapper.Post(url, ContentType: String;
   postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;
 var
@@ -299,6 +351,7 @@ begin
   ioHandler := TIdSSLIOHandlerSocketOpenSSL.Create;
   http.IOHandler := ioHandler;
   InitSSL(ioHandler);
+  InitHttp(http);
   http.Request.UserAgent := ' Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36';
   try
     http.Request.ContentType := ContentType;
