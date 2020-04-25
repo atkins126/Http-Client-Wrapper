@@ -20,17 +20,32 @@ type
 
   TOnHTTPClientResponse = reference to procedure(response: IHTTPClientResponse);
 
+
+  THttpHeader = record
+    key: String;
+    value: String;
+    class function EmptyArray: TArray<THttpHeader>;static;
+    class function SingleItem(key, value: String): TArray<THttpHeader>;static;
+  end;
+
+
   IHttpClientWrapper = interface
     function Get(url: String): IHTTPClientResponse;overload;
+    function Get(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
 
-    function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;
+    function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;overload;
+    function Post(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
+    function Post(url: String; ContentType: String; postData: TStrings; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
+
+    function Put(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;
+
+    function Delete(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;
   end;
 
   THTTPClientResponse = class(TInterfacedObject, IHTTPClientResponse)
   private
     FStatusCode: Integer;
-    FContent: String;
     FContentStream: TMemoryStream;
     function getStatusCode: Integer;
     function getContent: String;
@@ -42,7 +57,7 @@ type
     procedure SaveContentStream(filename: String);
 
     property StatusCode: Integer read getStatusCode write FStatusCode;
-    property Content: String read getContent write FContent;
+    property Content: String read getContent;
     property ContentStream: TStream read getContentStream;
   end;
 
@@ -52,18 +67,31 @@ type
     FOnResponse: TOnHTTPClientResponse;
   public
     constructor Create(client: IHttpClientWrapper);
+
     function Get(url: String): IHTTPClientResponse;overload;
+    function Get(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
     function Get(url: String; out response: String): IHTTPClientResponse;overload;
 
-    function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;
+    function Post(url: String; ContentType: String; postData: TStream): IHTTPClientResponse;overload;
+    function Post(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
+    function Post(url: String; ContentType: String; postData: TStrings; header: TArray<THttpHeader>): IHTTPClientResponse;overload;
+
+    function Put(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>): IHTTPClientResponse;
+
+    function Delete(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;
 
     procedure AsyncGet(url: String);
-    procedure AsyncPost(url: String; ContentType: String; postData: TStream);
+    procedure AsyncPost(url: String; ContentType: String; postData: TStream);overload;
+    procedure AsyncPost(url: String; ContentType: String; postData: TStream; header: TArray<THttpHeader>);overload;
+    procedure AsyncPost(url: String; ContentType: String; postData: TStrings);overload;
 
     property OnResponse: TOnHTTPClientResponse read FOnResponse write FOnResponse;
   end;
 
 implementation
+
+uses
+  System.SysUtils;
 
 { THTTPClientResponse }
 
@@ -79,8 +107,16 @@ begin
 end;
 
 function THTTPClientResponse.getContent: String;
+var
+  sStream: TStringStream;
 begin
-  Result := FContent;
+  sStream := TStringStream.Create('', TEncoding.UTF8);
+  try
+    sStream.LoadFromStream(ContentStream);
+    Result := sStream.DataString;
+  finally
+    sStream.Free;
+  end;
 end;
 
 function THTTPClientResponse.getContentStream: TStream;
@@ -150,9 +186,53 @@ begin
     end).Start;
 end;
 
+procedure THttpClientWrapper.AsyncPost(url, ContentType: String;
+  postData: TStrings);
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  TThread.CreateAnonymousThread(
+    procedure
+    var
+      resp: IHTTPClientResponse;
+    begin
+      resp := FClient.Post(url, ContentType, postData, THttpHeader.EmptyArray);
+      TThread.Synchronize(TThread.CurrentThread,
+      procedure
+      begin
+        if Assigned(OnResponse) then OnResponse(resp);
+        Self.Free;
+      end);
+    end).Start;
+end;
+
+procedure THttpClientWrapper.AsyncPost(url, ContentType: String;
+  postData: TStream; header: TArray<THttpHeader>);
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  TThread.CreateAnonymousThread(
+    procedure
+    var
+      resp: IHTTPClientResponse;
+    begin
+      resp := FClient.Post(url, ContentType, postData, header);
+      TThread.Synchronize(TThread.CurrentThread,
+      procedure
+      begin
+        if Assigned(OnResponse) then OnResponse(resp);
+        Self.Free;
+      end);
+    end).Start;
+end;
+
 constructor THttpClientWrapper.Create(client: IHttpClientWrapper);
 begin
   FClient := client;
+end;
+
+function THttpClientWrapper.Delete(url: String; header: TArray<THttpHeader>): IHTTPClientResponse;
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Delete(url, header);
 end;
 
 function THttpClientWrapper.Get(url: String;
@@ -162,11 +242,53 @@ begin
   Result := FClient.Get(url, response);
 end;
 
+function THttpClientWrapper.Post(url, ContentType: String; postData: TStrings;
+  header: TArray<THttpHeader>): IHTTPClientResponse;
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Post(url, ContentType, postData, header);
+end;
+
+function THttpClientWrapper.Put(url, ContentType: String; postData: TStream;
+  header: TArray<THttpHeader>): IHTTPClientResponse;
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Put(url, ContentType, postData, header);
+end;
+
+function THttpClientWrapper.Post(url, ContentType: String; postData: TStream;
+  header: TArray<THttpHeader>): IHTTPClientResponse;
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Post(url, ContentType, postData, header);
+end;
+
+function THttpClientWrapper.Get(url: String;
+  header: TArray<THttpHeader>): IHTTPClientResponse;
+begin
+  Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
+  Result := FClient.Get(url, header);
+end;
+
 function THttpClientWrapper.Post(url: String;
   ContentType: String; postData: TStream): IHTTPClientResponse;
 begin
   Assert(Assigned(FClient), 'Es wurde kein Wrapper zugewiesen');
   Result := FClient.Post(url, ContentType, postData);
+end;
+
+{ THttpHeader }
+
+class function THttpHeader.EmptyArray: TArray<THttpHeader>;
+begin
+  SetLength(Result, 0);
+end;
+
+class function THttpHeader.SingleItem(key, value: String): TArray<THttpHeader>;
+begin
+  SetLength(Result, 1);
+  Result[0].key := key;
+  Result[0].value := value;
 end;
 
 end.
