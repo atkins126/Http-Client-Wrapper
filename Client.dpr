@@ -5,8 +5,7 @@ uses
   ClientTestFrm in 'ClientTestFrm.pas' {ClientTestDlg},
   HttpClientWrapperLib in 'source\HttpClientWrapperLib.pas',
   IndyHttpClientWrapper in 'source\IndyHttpClientWrapper.pas',
-  NetHttpClientWrapper in 'source\NetHttpClientWrapper.pas',
-  AlcinoeHttpClientWrapper in 'source\AlcinoeHttpClientWrapper.pas';
+  NetHttpClientWrapper in 'source\NetHttpClientWrapper.pas';
 
 {$R *.res}
 

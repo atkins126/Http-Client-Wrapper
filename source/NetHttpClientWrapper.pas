@@ -133,10 +133,12 @@ begin
   begin
     Result.OnValidateServerCertificate := ValidateServerCertificate;
   end;
+  {$IFDEF VER330}
   if (TOSVersion.Platform = TOSVersion.TPlatform.pfWindows) and (not TOSVersion.Check(6, 2)) then
   begin
     Result.SecureProtocols := [THTTPSecureProtocol.TLS11, THTTPSecureProtocol.TLS12];
   end;
+  {$ENDIF}
 
   if not BasicAuthUser.Trim.IsEmpty then
   begin

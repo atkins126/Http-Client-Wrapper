@@ -33,7 +33,7 @@ implementation
 
 uses
   HttpClientWrapperLib, Vcl.Imaging.pngimage, IdMultipartFormData,
-  AlcinoeHttpClientWrapper;
+  NetHttpClientWrapper;
 
 {$R *.dfm}
 
@@ -42,7 +42,7 @@ var
   client: THttpClientWrapper;
   teext: string;
 begin
-  client := THttpClientWrapper.Create(TAlcinoeHttpClientWrapper.Create);
+  client := THttpClientWrapper.Create(TNetHttpClientWrapper.Create);
   client.Get('http://httpbin.org/headers', teext);
   Memo1.Text := teext;
   client.Free;
@@ -54,7 +54,7 @@ var
   resp: IHTTPClientResponse;
   stream: TStringStream;
 begin
-  client := THttpClientWrapper.Create(TAlcinoeHttpClientWrapper.Create);
+  client := THttpClientWrapper.Create(TNetHttpClientWrapper.Create);
   stream := TStringStream.Create('{"name": "Dennis"}');
   resp := client.Post('http://httpbin.org/post', 'application/json', stream);
   stream.Free;
@@ -72,7 +72,7 @@ begin
   form := TIdMultiPartFormDataStream.Create;
   form.AddFormField('Name', 'ABCDE');
 
-  client := THttpClientWrapper.Create(TAlcinoeHttpClientWrapper.Create);
+  client := THttpClientWrapper.Create(TNetHttpClientWrapper.Create);
   resp := client.Post('https://requestb.in/1idy81g1', form.RequestContentType, form);
 
   form.Free;
@@ -85,7 +85,7 @@ procedure TClientTestDlg.Button4Click(Sender: TObject);
 var
   client: THttpClientWrapper;
 begin
-  client := THttpClientWrapper.Create(TAlcinoeHttpClientWrapper.Create);
+  client := THttpClientWrapper.Create(TNetHttpClientWrapper.Create);
   client.OnResponse :=
     procedure(resp: IHTTPClientResponse)
     begin
@@ -99,7 +99,7 @@ var
   client: THttpClientWrapper;
   strStream: TStringStream;
 begin
-  client := THttpClientWrapper.Create(TAlcinoeHttpClientWrapper.Create);
+  client := THttpClientWrapper.Create(TNetHttpClientWrapper.Create);
   client.OnResponse :=
     procedure(resp: IHTTPClientResponse)
     begin
